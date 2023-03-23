@@ -25,6 +25,15 @@ namespace HidSharp.Platform.Linux
 {
     sealed class LinuxHidManager : HidManager
     {
+        protected override bool TryCreateUsbTmcDevice(object key, out Device device)
+        {
+            throw new NotImplementedException();
+        }
+        protected override object[] GetUsbTmcDeviceKeys()
+        {
+            throw new NotImplementedException();
+        }
+
         protected override SystemEvents.EventManager CreateEventManager()
         {
             return new SystemEvents.LinuxEventManager();

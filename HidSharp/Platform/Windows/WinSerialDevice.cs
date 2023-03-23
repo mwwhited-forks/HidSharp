@@ -30,24 +30,11 @@ namespace HidSharp.Platform.Windows
             return stream;
         }
 
-        internal static WinSerialDevice TryCreate(string portName, string fileSystemName, string friendlyName)
-        {
-            return new WinSerialDevice() { _path = portName, _fileSystemName = fileSystemName, _friendlyName = friendlyName };
-        }
+        internal static WinSerialDevice TryCreate(string portName, string fileSystemName, string friendlyName) =>
+            new WinSerialDevice() { _path = portName, _fileSystemName = fileSystemName, _friendlyName = friendlyName };
 
-        public override string GetFileSystemName()
-        {
-            return _fileSystemName;
-        }
-
-        public override string GetFriendlyName()
-        {
-            return _friendlyName;
-        }
-
-        public override string DevicePath
-        {
-            get { return _path; }
-        }
+        public override string GetFileSystemName() => _fileSystemName;
+        public override string GetFriendlyName() => _friendlyName;
+        public override string DevicePath => _path;
     }
 }

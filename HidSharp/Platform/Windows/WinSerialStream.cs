@@ -235,4 +235,5 @@ namespace HidSharp.Platform.Windows
             set;
         }
     }
+
 }

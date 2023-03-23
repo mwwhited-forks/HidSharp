@@ -30,7 +30,7 @@ using HidSharp.Utility;
 
 namespace HidSharp.Platform.Windows
 {
-    unsafe static class NativeMethods
+    public unsafe static class NativeMethods
     {
         public static readonly Guid GuidForBluetoothLEDevice = new Guid("{781AEE18-7733-4CE4-ADD0-91F41C67B592}");
         public static readonly Guid GuidForBluetoothHciEvent = new Guid("{FC240062-1541-49BE-B463-84C4DCD7BF7F}");
@@ -39,12 +39,15 @@ namespace HidSharp.Platform.Windows
         public static readonly Guid GuidForComPort = new Guid("{86E0D1E0-8089-11D0-9CE4-08003E301F73}");
         public static readonly Guid GuidForPortsClass = new Guid("{4D36E978-E325-11CE-BFC1-08002BE10318}");
         public static readonly Guid GuidForUsbHub = new Guid("{F18A0E88-C30C-11D0-8815-00A0C906BED8}");
+        public static readonly Guid GuidForUsbTmc = new Guid(" {a9fdbb24-128a-11d5-9961-00108335e361}");
+       
 
-        // For constants, see PInvoke.Net,
-        //  http://doxygen.reactos.org/de/d2a/hidclass_8h_source.html
-        //  http://www.rpi.edu/dept/cis/software/g77-mingw32/include/winioctl.h
-        // and Google.
-        public const int DICS_FLAG_GLOBAL = 1;
+
+    // For constants, see PInvoke.Net,
+    //  http://doxygen.reactos.org/de/d2a/hidclass_8h_source.html
+    //  http://www.rpi.edu/dept/cis/software/g77-mingw32/include/winioctl.h
+    // and Google.
+    public const int DICS_FLAG_GLOBAL = 1;
         public const int DIREG_DEV = 1;
         public const int ERROR_GEN_FAILURE = 31;
         public const int ERROR_HANDLE_EOF = 38;

@@ -27,7 +27,7 @@ namespace HidSharp.Platform.Windows
     partial class WinHidDevice
     {
         // TODO: This likely will only work for very simple descriptors. Extend its functionality over time as needed...
-        struct ReportDescriptorReconstructor
+        public struct ReportDescriptorReconstructor
         {
             ReportDescriptorBuilder _builder;
             IntPtr _preparsed;

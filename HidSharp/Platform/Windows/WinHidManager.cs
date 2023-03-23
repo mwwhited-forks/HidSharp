@@ -78,6 +78,11 @@ namespace HidSharp.Platform.Windows
 
         }
 
+        sealed class UsbTmcDevicePath : DevicePathBase
+        {
+
+        }
+
         sealed class SerialDevicePath : DevicePathBase
         {
             public override bool Equals(object obj)
@@ -113,13 +118,16 @@ namespace HidSharp.Platform.Windows
         static object _hidNotifyObject;
         static object _serNotifyObject;
         static object _bleNotifyObject;
+        static object _usbTmcNotifyObject;
 
         static object[] _hidDeviceKeysCache;
         static object[] _serDeviceKeysCache;
         static object[] _bleDeviceKeysCache;
+        static object[] _usbTmcDeviceKeysCache;
         static object _hidDeviceKeysCacheNotifyObject;
         static object _serDeviceKeysCacheNotifyObject;
         static object _bleDeviceKeysCacheNotifyObject;
+        static object _usbTmcDeviceKeysCacheNotifyObject;
 
         public WinHidManager()
         {
@@ -213,14 +221,16 @@ namespace HidSharp.Platform.Windows
             while (true)
             {
                 int result = NativeMethods.GetMessage(out msg, hwnd, 0, 0);
-                if (result == 0 || result == -1) { break; }
+                if (result == 0 || result == -1)
+                { break; }
 
                 NativeMethods.TranslateMessage(ref msg);
                 NativeMethods.DispatchMessage(ref msg);
             }
 
             //lock (_bleDiscoveryThread) { _bleDiscoveryShuttingDown = true; Monitor.Pulse(_bleDiscoveryThread); }
-            lock (_notifyThread) { _notifyThreadShuttingDown = true; Monitor.Pulse(_notifyThread); }
+            lock (_notifyThread)
+            { _notifyThreadShuttingDown = true; Monitor.Pulse(_notifyThread); }
             NativeMethods.SetEvent(_serialWatcherShutdownEvent);
             //_bleDiscoveryThread.Join();
             _notifyThread.Join();
@@ -237,7 +247,7 @@ namespace HidSharp.Platform.Windows
             GC.KeepAlive(windowProc);
         }
 
-        static IntPtr  RegisterDeviceNotification(IntPtr hwnd, Guid guid)
+        static IntPtr RegisterDeviceNotification(IntPtr hwnd, Guid guid)
         {
             var notifyFilter = new NativeMethods.DEV_BROADCAST_DEVICEINTERFACE()
             {
@@ -329,7 +339,7 @@ namespace HidSharp.Platform.Windows
                         // For now, this doesn't raise the DeviceList Changed event. It only seems to occur at connection.
                     }
                 }
-                
+
                 return (IntPtr)1;
             }
 
@@ -365,16 +375,19 @@ namespace HidSharp.Platform.Windows
 
                         while (true)
                         {
-                            if (0 != NativeMethods.RegNotifyChangeKeyValue(handle, false, NativeMethods.REG_NOTIFY_CHANGE_LAST_SET, notifyEvent, true)) { break; }
+                            if (0 != NativeMethods.RegNotifyChangeKeyValue(handle, false, NativeMethods.REG_NOTIFY_CHANGE_LAST_SET, notifyEvent, true))
+                            { break; }
 
                             switch (NativeMethods.WaitForMultipleObjects(2, handles, false, uint.MaxValue))
                             {
-                                case NativeMethods.WAIT_OBJECT_0: default:
+                                case NativeMethods.WAIT_OBJECT_0:
+                                default:
                                     return;
 
                                 case NativeMethods.WAIT_OBJECT_1:
                                     HidSharpDiagnostics.Trace("Received a serial change event.");
-                                    DeviceListDidChange(ref _serNotifyObject); break;
+                                    DeviceListDidChange(ref _serNotifyObject);
+                                    break;
                             }
                         }
                     }
@@ -537,7 +550,8 @@ namespace HidSharp.Platform.Windows
             lock (_notifyThread)
             {
                 notifyObject = _bleNotifyObject;
-                if (notifyObject == _bleDeviceKeysCacheNotifyObject) { return _bleDeviceKeysCache; }
+                if (notifyObject == _bleDeviceKeysCacheNotifyObject)
+                { return _bleDeviceKeysCache; }
             }
 
             var paths = new List<object>();
@@ -583,7 +597,8 @@ namespace HidSharp.Platform.Windows
             lock (_notifyThread)
             {
                 notifyObject = _hidNotifyObject;
-                if (notifyObject == _hidDeviceKeysCacheNotifyObject) { return _hidDeviceKeysCache; }
+                if (notifyObject == _hidDeviceKeysCacheNotifyObject)
+                { return _hidDeviceKeysCache; }
             }
 
             var paths = new List<object>();
@@ -613,7 +628,8 @@ namespace HidSharp.Platform.Windows
             lock (_notifyThread)
             {
                 notifyObject = _serNotifyObject;
-                if (notifyObject == _serDeviceKeysCacheNotifyObject) { return _serDeviceKeysCache; }
+                if (notifyObject == _serDeviceKeysCacheNotifyObject)
+                { return _serDeviceKeysCache; }
             }
 
             var paths = new List<object>();
@@ -643,6 +659,37 @@ namespace HidSharp.Platform.Windows
             return keys;
         }
 
+        protected override object[] GetUsbTmcDeviceKeys()
+        {
+            object notifyObject;
+            lock (_notifyThread)
+            {
+                notifyObject = _usbTmcNotifyObject;
+                if (notifyObject == _usbTmcDeviceKeysCacheNotifyObject)
+                { return _usbTmcDeviceKeysCache; }
+            }
+
+            var paths = new List<object>();
+
+            var usbTmcGuid = NativeMethods.HidD_GetHidGuid();
+            NativeMethods.EnumerateDeviceInterfaces(usbTmcGuid, (_, __, ___, deviceID, devicePath) =>
+            {
+                paths.Add(new UsbTmcDevicePath()
+                {
+                    DeviceID = deviceID,
+                    DevicePath = devicePath
+                });
+            });
+
+            var keys = paths.ToArray();
+            lock (_notifyThread)
+            {
+                _usbTmcDeviceKeysCacheNotifyObject = notifyObject;
+                _usbTmcDeviceKeysCache = keys;
+            }
+            return keys;
+        }
+
         protected override bool TryCreateBleDevice(object key, out Device device)
         {
             var path = (BleDevicePath)key;
@@ -660,7 +707,15 @@ namespace HidSharp.Platform.Windows
         protected override bool TryCreateSerialDevice(object key, out Device device)
         {
             var path = (SerialDevicePath)key;
-            device = WinSerialDevice.TryCreate(path.DevicePath, path.FileSystemName, path.FriendlyName); return true;
+            device = WinSerialDevice.TryCreate(path.DevicePath, path.FileSystemName, path.FriendlyName);
+            return true;
+        }
+
+        protected override bool TryCreateUsbTmcDevice(object key, out Device device)
+        {
+            var path = (UsbTmcDevicePath)key;
+            device = WinUsbTmcDevice.TryCreate(path.DevicePath, path.DeviceID);
+            return device != null;
         }
 
         public override bool AreDriversBeingInstalled
@@ -678,14 +733,8 @@ namespace HidSharp.Platform.Windows
             }
         }
 
-        public override string FriendlyName
-        {
-            get { return "Windows HID"; }
-        }
+        public override string FriendlyName => "Windows HID";
+        public override bool IsSupported => _isSupported;
 
-        public override bool IsSupported
-        {
-            get { return _isSupported; }
-        }
     }
 }

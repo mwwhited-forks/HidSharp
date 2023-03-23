@@ -27,37 +27,42 @@ namespace HidSharp
         /// <summary>
         /// The device is running on Windows.
         /// </summary>
-        public static Guid Windows { get; private set; }
+        public static Guid Windows { get;  }
 
         /// <summary>
         /// The device is running on a Mac.
         /// </summary>
-        public static Guid MacOS { get; private set; }
+        public static Guid MacOS { get;  }
 
         /// <summary>
         /// The device is running on Linux.
         /// </summary>
-        public static Guid Linux { get; private set; }
+        public static Guid Linux { get;  }
 
         /// <summary>
         /// The device is a Bluetooth Low Energy device.
         /// </summary>
-        public static Guid BleDevice { get; private set; }
+        public static Guid BleDevice { get; }
 
         /// <summary>
         /// The device is a HID device.
         /// </summary>
-        public static Guid HidDevice { get; private set; }
+        public static Guid HidDevice { get;  }
 
         /// <summary>
         /// The device is a serial device.
         /// </summary>
-        public static Guid SerialDevice { get; private set; }
+        public static Guid SerialDevice { get;  }
 
         /// <summary>
         /// The device is implemented using the Linux hidraw API.
         /// </summary>
-        public static Guid HidrawApi { get; private set; }
+        public static Guid HidrawApi { get;  }
+
+        /// <summary>
+        /// The device is a USBTMC device.
+        /// </summary>
+        public static Guid UsbTmcDevice { get; }
 
         static ImplementationDetail()
         {
@@ -68,6 +73,7 @@ namespace HidSharp
             BleDevice = new Guid("{AAFD1479-29A0-42B8-A0A9-5C88A18B5504}");
             HidDevice = new Guid("{DFF209D7-131E-4958-8F47-C23DAC7B62DA}");
             SerialDevice = new Guid("{45A96DA9-AA48-4BF7-978D-A845F185F38C}");
+            UsbTmcDevice = new Guid("CAA93238-9B88-4C55-9411-FA93F6C61075");
 
             HidrawApi = new Guid("{1199D7C6-F99F-471F-9730-B16BA615938F}");
         }

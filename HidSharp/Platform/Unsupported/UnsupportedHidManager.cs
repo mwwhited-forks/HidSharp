@@ -21,6 +21,15 @@ namespace HidSharp.Platform.Unsupported
 {
     sealed class UnsupportedHidManager : HidManager
     {
+        protected override bool TryCreateUsbTmcDevice(object key, out Device device)
+        {
+            throw new NotImplementedException();
+        }
+        protected override object[] GetUsbTmcDeviceKeys()
+        {
+            throw new NotImplementedException();
+        }
+
         protected override object[] GetBleDeviceKeys()
         {
             return new object[0];

@@ -35,7 +35,7 @@ namespace HidSharp
 
         public override IEnumerable<Device> GetAllDevices()
         {
-            return GetDevices(DeviceTypes.Hid | DeviceTypes.Serial | DeviceTypes.Ble);
+            return GetDevices(DeviceTypes.Hid | DeviceTypes.Serial | DeviceTypes.Ble | DeviceTypes.UsbTmc);
         }
 
         public override string ToString()

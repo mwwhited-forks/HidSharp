@@ -1,5 +1,5 @@
 ﻿#region License
-/* Copyright 2010-2015, 2017-2018 James F. Bellinger <http://www.zer7.com/software/hidsharp>
+/* Copyright 2010-2015, 2017-2018 James F. Bellinger <http://www.zer7.com/software/UsbTmcsharp>
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -24,7 +24,7 @@ using System.Text.RegularExpressions;
 
 namespace HidSharp.Platform.Windows
 {
-    sealed partial class WinHidDevice : HidDevice
+    sealed partial class WinUsbTmcDevice : UsbTmcDevice
     {
         [Flags]
         enum GetInfoFlags
@@ -44,28 +44,28 @@ namespace HidSharp.Platform.Windows
         int _maxInput, _maxOutput, _maxFeature;
         byte[] _reportDescriptor;
 
-        WinHidDevice()
+        WinUsbTmcDevice()
         {
 
         }
 
-        internal static WinHidDevice TryCreate(string path, string id)
+        internal static WinUsbTmcDevice TryCreate(string path, string id)
         {
-            var d = new WinHidDevice() { _path = path, _id = id };
+            var d = new WinUsbTmcDevice() { _path = path, _id = id };
 
             return d.TryOpenToGetInfo(handle =>
-                {
-                    NativeMethods.HIDD_ATTRIBUTES attributes = new NativeMethods.HIDD_ATTRIBUTES();
-                    attributes.Size = Marshal.SizeOf(attributes);
-                    if (!NativeMethods.HidD_GetAttributes(handle, ref attributes))
-                    { return false; }
+            {
+                NativeMethods.HIDD_ATTRIBUTES attributes = new NativeMethods.HIDD_ATTRIBUTES();
+                attributes.Size = Marshal.SizeOf(attributes);
+                if (!NativeMethods.HidD_GetAttributes(handle, ref attributes))
+                { return false; }
 
-                    // Get VID, PID, version.
-                    d._pid = attributes.ProductID;
-                    d._vid = attributes.VendorID;
-                    d._version = attributes.VersionNumber;
-                    return true;
-                }) ? d : null;
+                // Get VID, PID, version.
+                d._pid = attributes.ProductID;
+                d._vid = attributes.VendorID;
+                d._version = attributes.VersionNumber;
+                return true;
+            }) ? d : null;
         }
 
         bool TryOpenToGetInfo(Func<IntPtr, bool> action)
@@ -77,7 +77,7 @@ namespace HidSharp.Platform.Windows
         {
             RequiresGetInfo(GetInfoFlags.ReportInfo);
 
-            var stream = new WinHidStream(this);
+            var stream = new WinUsbTmcStream(this);
             try
             { stream.Init(_path); return stream; }
             catch { stream.Close(); throw; }
@@ -92,55 +92,55 @@ namespace HidSharp.Platform.Windows
                 { return; }
 
                 if (!TryOpenToGetInfo(handle =>
+                {
+                    if ((flags & GetInfoFlags.Manufacturer) != 0)
                     {
-                        if ((flags & GetInfoFlags.Manufacturer) != 0)
-                        {
-                            if (!TryGetDeviceString(handle, NativeMethods.HidD_GetManufacturerString, out _manufacturer))
-                            { return false; }
-                        }
+                        if (!TryGetDeviceString(handle, NativeMethods.HidD_GetManufacturerString, out _manufacturer))
+                        { return false; }
+                    }
 
-                        if ((flags & GetInfoFlags.ProductName) != 0)
-                        {
-                            if (!TryGetDeviceString(handle, NativeMethods.HidD_GetProductString, out _productName))
-                            { return false; }
-                        }
+                    if ((flags & GetInfoFlags.ProductName) != 0)
+                    {
+                        if (!TryGetDeviceString(handle, NativeMethods.HidD_GetProductString, out _productName))
+                        { return false; }
+                    }
 
-                        if ((flags & GetInfoFlags.SerialNumber) != 0)
-                        {
-                            if (!TryGetDeviceString(handle, NativeMethods.HidD_GetSerialNumberString, out _serialNumber))
-                            { return false; }
-                        }
+                    if ((flags & GetInfoFlags.SerialNumber) != 0)
+                    {
+                        if (!TryGetDeviceString(handle, NativeMethods.HidD_GetSerialNumberString, out _serialNumber))
+                        { return false; }
+                    }
 
-                        if ((flags & GetInfoFlags.ReportInfo) != 0)
+                    if ((flags & GetInfoFlags.ReportInfo) != 0)
+                    {
+                        IntPtr preparsed;
+                        if (!NativeMethods.HidD_GetPreparsedData(handle, out preparsed))
+                        { return false; }
+
+                        try
                         {
-                            IntPtr preparsed;
-                            if (!NativeMethods.HidD_GetPreparsedData(handle, out preparsed))
+                            NativeMethods.HIDP_CAPS caps;
+                            int statusCaps = NativeMethods.HidP_GetCaps(preparsed, out caps);
+                            if (statusCaps != NativeMethods.HIDP_STATUS_SUCCESS)
                             { return false; }
+
+                            _maxInput = caps.InputReportByteLength;
+                            _maxOutput = caps.OutputReportByteLength;
+                            _maxFeature = caps.FeatureReportByteLength;
 
                             try
-                            {
-                                NativeMethods.HIDP_CAPS caps;
-                                int statusCaps = NativeMethods.HidP_GetCaps(preparsed, out caps);
-                                if (statusCaps != NativeMethods.HIDP_STATUS_SUCCESS)
-                                { return false; }
-
-                                _maxInput = caps.InputReportByteLength;
-                                _maxOutput = caps.OutputReportByteLength;
-                                _maxFeature = caps.FeatureReportByteLength;
-
-                                try
-                                { _reportDescriptor = new ReportDescriptorReconstructor().Run(preparsed, caps); }
-                                catch (NotImplementedException) { _reportDescriptor = null; }
-                                catch { return false; }
-                            }
-                            finally
-                            {
-                                NativeMethods.HidD_FreePreparsedData(preparsed);
-                            }
+                            { _reportDescriptor = new WinHidDevice.ReportDescriptorReconstructor().Run(preparsed, caps); }
+                            catch (NotImplementedException) { _reportDescriptor = null; }
+                            catch { return false; }
                         }
+                        finally
+                        {
+                            NativeMethods.HidD_FreePreparsedData(preparsed);
+                        }
+                    }
 
-                        return true;
-                    }))
+                    return true;
+                }))
                 {
                     throw DeviceException.CreateIOException(this, "Failed to get info.");
                 }
@@ -289,7 +289,7 @@ namespace HidSharp.Platform.Windows
                     string parentDeviceID;
                     if (0 != NativeMethods.CM_Get_Device_ID(parentDevInst, out parentDeviceID))
                     { break; }
-                    if (!parentDeviceID.StartsWith(@"USB\") && !parentDeviceID.StartsWith(@"HID\"))
+                    if (!parentDeviceID.StartsWith(@"USB\") && !parentDeviceID.StartsWith(@"UsbTmc\"))
                     { break; }
 
                     devInst = parentDevInst;
@@ -360,14 +360,14 @@ namespace HidSharp.Platform.Windows
                         if (0 == NativeMethods.CM_Get_Device_ID(devInst, out deviceID))
                         {
                             NativeMethods.EnumerateDeviceInterfaces(NativeMethods.GuidForComPort, deviceID, (deviceInfoSet, deviceInfoData, _, __, devicePath) =>
+                            {
+                                string friendlyName, portName;
+                                if (NativeMethods.TryGetSerialPortFriendlyName(deviceInfoSet, ref deviceInfoData, out friendlyName) &&
+                                    NativeMethods.TryGetSerialPortName(deviceInfoSet, ref deviceInfoData, out portName))
                                 {
-                                    string friendlyName, portName;
-                                    if (NativeMethods.TryGetSerialPortFriendlyName(deviceInfoSet, ref deviceInfoData, out friendlyName) &&
-                                        NativeMethods.TryGetSerialPortName(deviceInfoSet, ref deviceInfoData, out portName))
-                                    {
-                                        ports.Add(@"\\.\" + portName);
-                                    }
-                                });
+                                    ports.Add(@"\\.\" + portName);
+                                }
+                            });
                         }
                     }
                     while (0 == NativeMethods.CM_Get_Sibling(out devInst, devInst));

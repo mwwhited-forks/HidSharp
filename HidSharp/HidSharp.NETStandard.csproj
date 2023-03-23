@@ -1,13 +1,11 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>netstandard2.0</TargetFrameworks>
+    <TargetFramework>net6.0</TargetFramework>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
     <AssemblyName>HidSharp</AssemblyName>
     <RootNamespace>HidSharp</RootNamespace>
-    <OutputPath>..\bin</OutputPath>
-    <DocumentationFile>..\bin\netstandard2.0\HidSharp.XML</DocumentationFile>
   </PropertyGroup>
 
 </Project>

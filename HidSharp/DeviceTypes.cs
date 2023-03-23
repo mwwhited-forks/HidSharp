@@ -24,6 +24,7 @@ namespace HidSharp
     {
         Hid = 1,
         Serial = 2,
-        Ble = 4
+        Ble = 4,
+        UsbTmc = 8,
     }
 }
