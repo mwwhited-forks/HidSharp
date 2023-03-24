@@ -61,11 +61,13 @@ namespace HidSharp.Platform.Linux
                     while (true)
                     {
                         ret = NativeMethods.retry(() => NativeMethods.poll(fds, (IntPtr)1, -1));
-                        if (ret < 0) { break; }
+                        if (ret < 0)
+                        { break; }
 
                         if (ret == 1)
                         {
-                            if (0 != (fds[0].revents & (NativeMethods.pollev.ERR | NativeMethods.pollev.HUP | NativeMethods.pollev.NVAL))) { break; }
+                            if (0 != (fds[0].revents & (NativeMethods.pollev.ERR | NativeMethods.pollev.HUP | NativeMethods.pollev.NVAL)))
+                            { break; }
                             if (0 != (fds[0].revents & NativeMethods.pollev.IN))
                             {
                                 IntPtr device = NativeMethodsLibudev.Instance.udev_monitor_receive_device(monitor);
@@ -90,16 +92,9 @@ namespace HidSharp.Platform.Linux
             }
         }
 
-        protected override object[] GetBleDeviceKeys()
-        {
-            return new object[0];
-        }
-
-        protected override object[] GetHidDeviceKeys()
-        {
-            return GetDeviceKeys("hidraw");
-        }
-
+        protected override object[] GetBleDeviceKeys() => new object[0];
+        protected override object[] GetHidDeviceKeys() => GetDeviceKeys("hidraw");
+        protected override object[] GetUsbTmcDeviceKeys() => throw new NotImplementedException();
         protected override object[] GetSerialDeviceKeys()
         {
             //return GetDeviceKeys("tty"); // TODO: Find proper DevicePaths by enumerating tty.
@@ -137,7 +132,8 @@ namespace HidSharp.Platform.Linux
                                      entry = NativeMethodsLibudev.Instance.udev_list_entry_get_next(entry))
                                 {
                                     string syspath = NativeMethodsLibudev.Instance.udev_list_entry_get_name(entry);
-                                    if (syspath != null) { paths.Add(syspath); }
+                                    if (syspath != null)
+                                    { paths.Add(syspath); }
                                 }
                             }
                         }
@@ -156,21 +152,18 @@ namespace HidSharp.Platform.Linux
             return paths.Cast<object>().ToArray();
         }
 
-        protected override bool TryCreateBleDevice(object key, out Device device)
-        {
-            throw new NotImplementedException();
-        }
-
+        protected override bool TryCreateBleDevice(object key, out Device device) => throw new NotImplementedException();
         protected override bool TryCreateHidDevice(object key, out Device device)
         {
             device = LinuxHidDevice.TryCreate((string)key);
             return device != null;
         }
-
         protected override bool TryCreateSerialDevice(object key, out Device device)
         {
-            device = LinuxSerialDevice.TryCreate((string)key); return true;
+            device = LinuxSerialDevice.TryCreate((string)key);
+            return true;
         }
+        protected override bool TryCreateUsbTmcDevice(object key, out Device device) => throw new NotImplementedException();
 
         public override string FriendlyName
         {
@@ -189,7 +182,8 @@ namespace HidSharp.Platform.Linux
                 {
                     try
                     {
-                        string sysname; Version release;
+                        string sysname;
+                        Version release;
                         if (NativeMethods.uname(out sysname, out release))
                         {
                             if (sysname == "Linux" && release >= new Version(2, 6, 36))
@@ -202,10 +196,6 @@ namespace HidSharp.Platform.Linux
                         }
                     }
                     catch (Exception)
-                    {
-
-                    }
-                    finally
                     {
 
                     }

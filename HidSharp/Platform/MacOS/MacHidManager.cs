@@ -109,6 +109,11 @@ namespace HidSharp.Platform.MacOS
             return GetDeviceKeys("IOHIDDevice");
         }
 
+        protected override object[] GetUsbTmcDeviceKeys()
+        {
+            throw new NotImplementedException();
+        }
+
         protected override object[] GetSerialDeviceKeys()
         {
             return GetDeviceKeys("IOSerialBSDClient");
@@ -129,6 +134,11 @@ namespace HidSharp.Platform.MacOS
         {
             device = MacSerialDevice.TryCreate((NativeMethods.io_string_t)key);
             return device != null;
+        }
+
+        protected override bool TryCreateUsbTmcDevice(object key, out Device device)
+        {
+            throw new NotImplementedException();
         }
 
         public override string FriendlyName

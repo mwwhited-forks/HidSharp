@@ -77,6 +77,10 @@ namespace HidSharp.Platform.Windows
         {
 
         }
+        sealed class UsbTmcDevicePath : DevicePathBase
+        {
+
+        }
 
         sealed class SerialDevicePath : DevicePathBase
         {
@@ -99,10 +103,6 @@ namespace HidSharp.Platform.Windows
         bool _isSupported;
         bool _bleIsSupported;
 
-        //static Thread _bleDiscoveryThread;
-        //static int _bleDiscoveryRefCount;
-        //static volatile bool _bleDiscoveryShuttingDown;
-
         static Thread _serialWatcherThread;
         static IntPtr _serialWatcherShutdownEvent;
 
@@ -113,13 +113,16 @@ namespace HidSharp.Platform.Windows
         static object _hidNotifyObject;
         static object _serNotifyObject;
         static object _bleNotifyObject;
+        static object _usbTmcNotifyObject;
 
         static object[] _hidDeviceKeysCache;
         static object[] _serDeviceKeysCache;
         static object[] _bleDeviceKeysCache;
+        static object[] _usbTmcDeviceKeysCache;
         static object _hidDeviceKeysCacheNotifyObject;
         static object _serDeviceKeysCacheNotifyObject;
         static object _bleDeviceKeysCacheNotifyObject;
+        static object _usbTmcDeviceKeysCacheNotifyObject;
 
         public WinHidManager()
         {
@@ -165,6 +168,7 @@ namespace HidSharp.Platform.Windows
             RunAssert(hwnd != IntPtr.Zero, "HidSharp CreateWindow failed.");
 
             var hidNotifyHandle = RegisterDeviceNotification(hwnd, NativeMethods.HidD_GetHidGuid());
+            var usbTmcNotifyHandle = RegisterDeviceNotification(hwnd, NativeMethods.GuidForUsbTmc);
             var bleNotifyHandle = RegisterDeviceNotification(hwnd, NativeMethods.GuidForBluetoothLEDevice);
 
 #if BLUETOOTH_NOTIFY
@@ -194,9 +198,6 @@ namespace HidSharp.Platform.Windows
             }
 #endif
 
-            //_bleDiscoveryThread = new Thread(BleDiscoveryThread) { IsBackground = true, Name = "HidSharp BLE Discovery" };
-            //_bleDiscoveryThread.Start();
-
             _serialWatcherShutdownEvent = NativeMethods.CreateManualResetEventOrThrow();
             _serialWatcherThread = new Thread(SerialWatcherThread) { IsBackground = true, Name = "HidSharp Serial Watcher" };
             _serialWatcherThread.Start();
@@ -204,6 +205,7 @@ namespace HidSharp.Platform.Windows
             _hidNotifyObject = new object();
             _serNotifyObject = new object();
             _bleNotifyObject = new object();
+            _usbTmcNotifyObject = new object();
             _notifyThread = new Thread(DeviceMonitorEventThread) { IsBackground = true, Name = "HidSharp RaiseChanged" };
             _notifyThread.Start();
 
@@ -227,6 +229,7 @@ namespace HidSharp.Platform.Windows
             _serialWatcherThread.Join();
 
             UnregisterDeviceNotification(hidNotifyHandle);
+            UnregisterDeviceNotification(usbTmcNotifyHandle);
             UnregisterDeviceNotification(bleNotifyHandle);
 #if BLUETOOTH_NOTIFY
             foreach (var bleHandle in bleHandles) { UnregisterDeviceNotification(bleHandle.NotifyHandle); NativeMethods.CloseHandle(bleHandle.RadioHandle); }
@@ -290,6 +293,14 @@ namespace HidSharp.Platform.Windows
                         else if (diEventArgs->ClassGuid == NativeMethods.GuidForBluetoothLEDevice)
                         {
                             DeviceListDidChange(ref _bleNotifyObject);
+                        }
+                        else if (diEventArgs->ClassGuid == NativeMethods.GuidForUsbTmc)
+                        {
+                            DeviceListDidChange(ref _usbTmcNotifyObject);
+                        }
+                        else
+                        {
+                            Debug.WriteLine($"DeviceMonitorWindowProc:Else:>{{{diEventArgs->ClassGuid}}}");
                         }
                     }
                 }
@@ -390,78 +401,6 @@ namespace HidSharp.Platform.Windows
             }
         }
 
-        /*
-        static void BleDiscoveryThread()
-        {
-            try
-            {
-                lock (_bleDiscoveryThread)
-                {
-                    while (true)
-                    {
-                        if (_bleDiscoveryShuttingDown)
-                        {
-                            break;
-                        }
-
-                        if (_bleDiscoveryRefCount != 0)
-                        {
-                            Monitor.Exit(_bleDiscoveryThread);
-
-                            try
-                            {
-                                HidSharpDiagnostics.Trace("Performing Bluetooth discovery...");
-
-                                var @params = new NativeMethods.BLUETOOTH_DEVICE_SEARCH_PARAMS();
-                                @params.dwSize = Marshal.SizeOf(typeof(NativeMethods.BLUETOOTH_DEVICE_SEARCH_PARAMS));
-                                @params.fReturnAuthenticated = 1;
-                                @params.fReturnConnected = 1;
-                                @params.fReturnRemembered = 1;
-                                @params.fReturnUnknown = 1;
-                                @params.fIssueInquiry = 1;
-                                @params.cTimeoutMultiplier = 4; // 5.12 seconds
-
-                                var info = new NativeMethods.BLUETOOTH_DEVICE_INFO();
-                                info.dwSize = Marshal.SizeOf(typeof(NativeMethods.BLUETOOTH_DEVICE_INFO));
-
-                                var search = NativeMethods.BluetoothFindFirstDevice(ref @params, ref info);
-                                if (search != IntPtr.Zero)
-                                {
-                                    HidSharpDiagnostics.Trace("Bluetooth devices enumerated.");
-                                    NativeMethods.BluetoothFindDeviceClose(search);
-                                    continue;
-                                }
-                                else
-                                {
-                                    int error = Marshal.GetLastWin32Error();
-                                    if (error == NativeMethods.ERROR_NO_MORE_ITEMS)
-                                    {
-                                        HidSharpDiagnostics.Trace("No Bluetooth devices enumerable. (That's okay. We are just trying to activate discovery.)");
-                                        continue;
-                                    }
-                                    else
-                                    {
-                                        HidSharpDiagnostics.Trace("Win32 error {0} while enumerating Bluetooth devices.", error);
-                                    }
-                                }
-                            }
-                            finally
-                            {
-                                Monitor.Enter(_bleDiscoveryThread);
-                            }
-                        }
-
-                        Monitor.Wait(_bleDiscoveryThread);
-                    }
-                }
-            }
-            catch (Exception e)
-            {
-                HidSharpDiagnostics.Trace("Bluetooth discovery thread failed with exception: {0}", e);
-            }
-        }
-        */
-
         static void DeviceMonitorEventThread()
         {
             lock (_notifyThread)
@@ -493,43 +432,6 @@ namespace HidSharp.Platform.Windows
                 }
             }
         }
-
-        /*
-        sealed class WinBleDiscovery : BleDiscovery
-        {
-            int _stopped;
-
-            ~WinBleDiscovery()
-            {
-                StopDiscovery();
-            }
-
-            public override void StopDiscovery()
-            {
-                if (Interlocked.Exchange(ref _stopped, 1) == 0)
-                {
-                    lock (_bleDiscoveryThread)
-                    {
-                        Debug.Assert(_bleDiscoveryRefCount > 0);
-
-                        _bleDiscoveryRefCount--;
-                        Monitor.Pulse(_bleDiscoveryThread);
-                    }
-                }
-            }
-        }
-
-        public override BleDiscovery BeginBleDiscovery()
-        {
-            lock (_bleDiscoveryThread)
-            {
-                checked { _bleDiscoveryRefCount++; }
-                Monitor.Pulse(_bleDiscoveryThread);
-            }
-
-            return new WinBleDiscovery() { };
-        }
-        */
 
         protected override object[] GetBleDeviceKeys()
         {
@@ -606,6 +508,36 @@ namespace HidSharp.Platform.Windows
             }
             return keys;
         }
+        protected override object[] GetUsbTmcDeviceKeys()
+        {
+            object notifyObject;
+            lock (_notifyThread)
+            {
+                notifyObject = _usbTmcNotifyObject;
+                if (notifyObject == _usbTmcDeviceKeysCacheNotifyObject)
+                { return _usbTmcDeviceKeysCache; }
+            }
+
+            var paths = new List<object>();
+
+            var usbTmcGuid = NativeMethods.GuidForUsbTmc;
+            NativeMethods.EnumerateDeviceInterfaces(usbTmcGuid, (_, __, ___, deviceID, devicePath) =>
+            {
+                paths.Add(new UsbTmcDevicePath()
+                {
+                    DeviceID = deviceID,
+                    DevicePath = devicePath
+                });
+            });
+
+            var keys = paths.ToArray();
+            lock (_notifyThread)
+            {
+                _usbTmcDeviceKeysCacheNotifyObject = notifyObject;
+                _usbTmcDeviceKeysCache = keys;
+            }
+            return keys;
+        }
 
         protected override object[] GetSerialDeviceKeys()
         {
@@ -654,6 +586,13 @@ namespace HidSharp.Platform.Windows
         {
             var path = (HidDevicePath)key;
             device = WinHidDevice.TryCreate(path.DevicePath, path.DeviceID);
+            return device != null;
+        }
+
+        protected override bool TryCreateUsbTmcDevice(object key, out Device device)
+        {
+            var path = (UsbTmcDevicePath)key;
+            device = WinHidDevice.TryCreateTmc(path.DevicePath, path.DeviceID);
             return device != null;
         }
 

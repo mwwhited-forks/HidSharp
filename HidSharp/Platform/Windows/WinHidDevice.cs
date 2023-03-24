@@ -67,6 +67,25 @@ namespace HidSharp.Platform.Windows
                 }) ? d : null;
         }
 
+        internal static WinHidDevice TryCreateTmc(string path, string id)
+        {
+            var d = new WinHidDevice() { _path = path, _id = id };
+
+            return d.TryOpenToGetInfo(handle =>
+            {
+                NativeMethods.HIDD_ATTRIBUTES attributes = new NativeMethods.HIDD_ATTRIBUTES();
+                attributes.Size = Marshal.SizeOf(attributes);
+                if (!NativeMethods.HidD_GetAttributes(handle, ref attributes))
+                { return false; }
+
+                // Get VID, PID, version.
+                d._pid = attributes.ProductID;
+                d._vid = attributes.VendorID;
+                d._version = attributes.VersionNumber;
+                return true;
+            }) ? d : null;
+        }
+
         bool TryOpenToGetInfo(Func<IntPtr, bool> action)
         {
             return NativeMethods.TryOpenToGetInfo(_path, action);

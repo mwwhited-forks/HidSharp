@@ -21,6 +21,32 @@ namespace HidSharp
 
     public static class DeviceFilterHelper
     {
+        public static bool MatchUsbTmcDevices(Device device, int? vendorID = null, int? productID = null, int? releaseNumberBcd = null, string serialNumber = null)
+        {
+            var hidDevice = device as HidDevice;
+            if (hidDevice != null)
+            {
+                int vid = vendorID ?? -1, pid = productID ?? -1, ver = releaseNumberBcd ?? -1;
+
+                if ((vid < 0 || hidDevice.VendorID == vendorID) &&
+                    (pid < 0 || hidDevice.ProductID == productID) &&
+                    (ver < 0 || hidDevice.ReleaseNumberBcd == releaseNumberBcd))
+                {
+                    try
+                    {
+                        if (string.IsNullOrEmpty(serialNumber) || hidDevice.GetSerialNumber() == serialNumber)
+                        { return true; }
+                    }
+                    catch
+                    {
+
+                    }
+                }
+            }
+
+            return false;
+        }
+
         public static bool MatchHidDevices(Device device, int? vendorID = null, int? productID = null, int? releaseNumberBcd = null, string serialNumber = null)
         {
             var hidDevice = device as HidDevice;
@@ -34,7 +60,8 @@ namespace HidSharp
                 {
                     try
                     {
-                        if (string.IsNullOrEmpty(serialNumber) || hidDevice.GetSerialNumber() == serialNumber) { return true; }
+                        if (string.IsNullOrEmpty(serialNumber) || hidDevice.GetSerialNumber() == serialNumber)
+                        { return true; }
                     }
                     catch
                     {

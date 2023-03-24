@@ -81,7 +81,7 @@ namespace HidSharp.Test
             //using (list.BeginBleDiscovery())
             {
 
-            var allDeviceList = list.GetAllDevices().ToArray();
+            var allDeviceList = list.GetUsbTmcDevices().ToArray();
             Console.WriteLine("All device list:");
             foreach (Device dev in allDeviceList)
             {

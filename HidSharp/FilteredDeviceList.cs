@@ -25,21 +25,8 @@ namespace HidSharp
     public class FilteredDeviceList : DeviceList
     {
         int _dirty;
-        List<Func<bool>> _areDriversBeingInstalled;
-        Dictionary<Device, int> _refCounts;
-
-        public FilteredDeviceList()
-        {
-            _areDriversBeingInstalled = new List<Func<bool>>();
-            _refCounts = new Dictionary<Device, int>();
-        }
-
-        /*
-        public override BleDiscovery BeginBleDiscovery()
-        {
-            throw new NotImplementedException();
-        }
-        */
+        readonly List<Func<bool>> _areDriversBeingInstalled = new List<Func<bool>>();
+        readonly Dictionary<Device, int> _refCounts = new Dictionary<Device, int>();
 
         public void Add(Device device)
         {
@@ -106,7 +93,8 @@ namespace HidSharp
             }
             else
             {
-                _refCounts[device] = 1; _dirty = 1;
+                _refCounts[device] = 1;
+                _dirty = 1;
             }
         }
 
@@ -114,7 +102,8 @@ namespace HidSharp
         {
             if (--_refCounts[device] == 0)
             {
-                _refCounts.Remove(device); _dirty = 1;
+                _refCounts.Remove(device);
+                _dirty = 1;
             }
         }
 
@@ -127,9 +116,7 @@ namespace HidSharp
         }
 
         /// <inheritdoc/>
-        public override bool AreDriversBeingInstalled
-        {
-            get { return _areDriversBeingInstalled.Any(callback => callback()); }
-        }
+        public override bool AreDriversBeingInstalled =>
+            _areDriversBeingInstalled.Any(callback => callback());
     }
 }

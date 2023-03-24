@@ -39,6 +39,7 @@ namespace HidSharp.Platform.Windows
         public static readonly Guid GuidForComPort = new Guid("{86E0D1E0-8089-11D0-9CE4-08003E301F73}");
         public static readonly Guid GuidForPortsClass = new Guid("{4D36E978-E325-11CE-BFC1-08002BE10318}");
         public static readonly Guid GuidForUsbHub = new Guid("{F18A0E88-C30C-11D0-8815-00A0C906BED8}");
+        public static readonly Guid GuidForUsbTmc = new Guid("{A9FDBB24-128A-11D5-9961-00108335E361}");
 
         // For constants, see PInvoke.Net,
         //  http://doxygen.reactos.org/de/d2a/hidclass_8h_source.html
@@ -100,20 +101,9 @@ namespace HidSharp.Platform.Windows
 
         public const int DN_DEVICE_DISCONNECTED = 0x2000000;
 
-        public static uint CTL_CODE(uint devType, uint func, uint method, uint access)
-        {
-            return devType << 16 | access << 14 | func << 2 | method;
-        }
-
-        public static uint HID_CTL_CODE(uint id)
-        {
-            return CTL_CODE(FILE_DEVICE_KEYBOARD, id, METHOD_NEITHER, FILE_ANY_ACCESS);
-        }
-
-        public static int HIDP_ERROR_CODES(int sev, ushort code)
-        {
-            return sev << 28 | 0x11 << 16 | code;
-        }
+        public static uint CTL_CODE(uint devType, uint func, uint method, uint access) => devType << 16 | access << 14 | func << 2 | method;
+        public static uint HID_CTL_CODE(uint id) => CTL_CODE(FILE_DEVICE_KEYBOARD, id, METHOD_NEITHER, FILE_ANY_ACCESS);
+        public static int HIDP_ERROR_CODES(int sev, ushort code) =? sev << 28 | 0x11 << 16 | code;
 
         public static readonly int HIDP_STATUS_SUCCESS = HIDP_ERROR_CODES(0, 0);
         public static readonly int HIDP_STATUS_INVALID_PREPARSED_DATA = HIDP_ERROR_CODES(12, 1);
@@ -134,7 +124,6 @@ namespace HidSharp.Platform.Windows
         public static readonly uint IOCTL_USB_GET_NODE_CONNECTION_DRIVERKEY_NAME = CTL_CODE(FILE_DEVICE_UNKNOWN, 264, METHOD_BUFFERED, FILE_ANY_ACCESS);
 
         public const uint CM_DRP_DRIVER = 10;
-
         public const int BLUETOOTH_MAX_NAME_SIZE = 248;
 
         public enum WM_DEVICECHANGE_wParam
@@ -343,7 +332,7 @@ namespace HidSharp.Platform.Windows
         public struct SP_DEVICE_INTERFACE_DETAIL_DATA
         {
             public int Size;
-            [MarshalAs(UnmanagedType.ByValTStr, SizeConst=1024)] public string DevicePath;
+            [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 1024)] public string DevicePath;
         }
 
         public enum HIDP_REPORT_TYPE
@@ -531,30 +520,17 @@ namespace HidSharp.Platform.Windows
             public byte EvtChar;
             ushort Reserved2;
 
-            static uint GetBitMask(int bitCount)
-            {
-                return (1u << bitCount) - 1;
-            }
-
-            uint GetBits(int bitOffset, int bitCount)
-            {
-                return (fFlags >> bitOffset) & GetBitMask(bitCount);
-            }
-
+            static uint GetBitMask(int bitCount) => (1u << bitCount) - 1;
+            uint GetBits(int bitOffset, int bitCount) => (fFlags >> bitOffset) & GetBitMask(bitCount);
             void SetBits(int bitOffset, int bitCount, uint value)
             {
-                uint mask = GetBitMask(bitCount); fFlags &= ~(mask << bitOffset); fFlags |= (value & mask) << bitOffset;
+                uint mask = GetBitMask(bitCount);
+                fFlags &= ~(mask << bitOffset);
+                fFlags |= (value & mask) << bitOffset;
             }
 
-            bool GetBool(int bitOffset)
-            {
-                return GetBits(bitOffset, 1) != 0;
-            }
-
-            void SetBool(int bitOffset, bool value)
-            {
-                SetBits(bitOffset, 1, value ? 1u : 0);
-            }
+            bool GetBool(int bitOffset) => GetBits(bitOffset, 1) != 0;
+            void SetBool(int bitOffset, bool value) => SetBits(bitOffset, 1, value ? 1u : 0);
         }
 
         [StructLayout(LayoutKind.Sequential)]
@@ -580,10 +556,7 @@ namespace HidSharp.Platform.Windows
             [FieldOffset(4)]
             public Guid LongUuid;
 
-            public BleUuid ToGuid()
-            {
-                return IsShortUuid != 0 ? new BleUuid(ShortUuid) : new BleUuid(LongUuid);
-            }
+            public BleUuid ToGuid() => IsShortUuid != 0 ? new BleUuid(ShortUuid) : new BleUuid(LongUuid);
         }
 
         [StructLayout(LayoutKind.Sequential)]
@@ -615,7 +588,7 @@ namespace HidSharp.Platform.Windows
 
             [FieldOffset(29)]
             public byte IsReadable;
-            
+
             [FieldOffset(30)]
             public byte IsWritable;
 
@@ -650,9 +623,6 @@ namespace HidSharp.Platform.Windows
 
             [FieldOffset(0)]
             public ushort NumCharacteristics;
-
-            //[FieldOffset(4)]
-            //public fixed BTH_LE_GATT_CHARACTERISTIC Characteristics[1];
         }
 
         [StructLayout(LayoutKind.Explicit, Size = BTH_LE_GATT_CHARACTERISTIC_VALUE.Size)]
@@ -851,30 +821,30 @@ namespace HidSharp.Platform.Windows
         [Flags]
         public enum BDIF : uint
         {
-            Address          = 0x0000001,
-            Cod              = 0x0000002,
-            Name             = 0x0000004,
-            Paired           = 0x0000008,
-            Personal         = 0x0000010,
-            Connected        = 0x0000020,
-            ShortName        = 0x0000040,
-            Visible          = 0x0000080,
-            SspSupported     = 0x0000100,
-            SspPaired        = 0x0000200,
+            Address = 0x0000001,
+            Cod = 0x0000002,
+            Name = 0x0000004,
+            Paired = 0x0000008,
+            Personal = 0x0000010,
+            Connected = 0x0000020,
+            ShortName = 0x0000040,
+            Visible = 0x0000080,
+            SspSupported = 0x0000100,
+            SspPaired = 0x0000200,
             SspMitmProtected = 0x0000400,
-            Rssi             = 0x0001000,
-            Eir              = 0x0002000,
-            Br               = 0x0004000, // Windows 8
-            Le               = 0x0008000, // Windows 8
-            LePaired         = 0x0010000, // Windows 8
-            LePersonal       = 0x0020000, // Windows 8
-            LeMitmProtected  = 0x0040000, // Windows 8
+            Rssi = 0x0001000,
+            Eir = 0x0002000,
+            Br = 0x0004000, // Windows 8
+            Le = 0x0008000, // Windows 8
+            LePaired = 0x0010000, // Windows 8
+            LePersonal = 0x0020000, // Windows 8
+            LeMitmProtected = 0x0040000, // Windows 8
             LePrivacyEnabled = 0x0080000, // Windows 8
-            LeRandomAddress  = 0x0100000, // Windows 8
-            LeDiscoverable   = 0x0200000, // Windows 10
-            LeName           = 0x0400000, // Windows 10
-            Unknown1         = 0x1000000, // ???
-            Unknown2         = 0x2000000  // ???
+            LeRandomAddress = 0x0100000, // Windows 8
+            LeDiscoverable = 0x0200000, // Windows 10
+            LeName = 0x0400000, // Windows 10
+            Unknown1 = 0x1000000, // ???
+            Unknown2 = 0x2000000  // ???
         }
 
         public static IntPtr CreateAutoResetEventOrThrow()
@@ -890,7 +860,8 @@ namespace HidSharp.Platform.Windows
         static IntPtr CreateResetEventOrThrow(bool manualReset)
         {
             IntPtr @event = CreateEvent(IntPtr.Zero, manualReset, false, IntPtr.Zero);
-            if (@event == IntPtr.Zero) { throw new IOException("Event creation failed."); }
+            if (@event == IntPtr.Zero)
+            { throw new IOException("Event creation failed."); }
             return @event;
         }
 
@@ -911,13 +882,19 @@ namespace HidSharp.Platform.Windows
                 }
 
                 IntPtr* handles = stackalloc IntPtr[2];
-                handles[0] = eventHandle; handles[1] = closeEventHandle;
+                handles[0] = eventHandle;
+                handles[1] = closeEventHandle;
                 uint waitResult = WaitForMultipleObjects(2, handles, false, WaitForMultipleObjectsGetTimeout(eventTimeout));
                 switch (waitResult)
                 {
-                    case WAIT_OBJECT_0: break;
-                    case WAIT_OBJECT_1: closed = true; goto default;
-                    default: CancelIo(ioHandle); break;
+                    case WAIT_OBJECT_0:
+                        break;
+                    case WAIT_OBJECT_1:
+                        closed = true;
+                        goto default;
+                    default:
+                        CancelIo(ioHandle);
+                        break;
                 }
             }
 
@@ -948,15 +925,18 @@ namespace HidSharp.Platform.Windows
 
         public static int CM_Get_Device_ID(uint devInst, out string deviceID)
         {
-            int ret; deviceID = null;
-            
+            int ret;
+            deviceID = null;
+
             int length;
             ret = CM_Get_Device_ID_Size(out length, devInst);
-            if (ret != 0) { return ret; }
+            if (ret != 0)
+            { return ret; }
 
             var chars = new char[length + 1];
             ret = CM_Get_Device_ID(devInst, chars, chars.Length);
-            if (ret != 0) { return ret; }
+            if (ret != 0)
+            { return ret; }
 
             deviceID = new string(chars, 0, length);
             return 0;
@@ -1035,13 +1015,15 @@ namespace HidSharp.Platform.Windows
         [DllImport("kernel32.dll", CharSet = CharSet.Auto)]
         [return: MarshalAs(UnmanagedType.Bool)]
         public static extern bool GetVersionEx(ref OSVERSIONINFO version);
-         
+
         [DllImport("hid.dll")]
         public static extern void HidD_GetHidGuid(out Guid hidGuid);
 
-        public static Guid HidD_GetHidGuid()
+        public static Guid HidD_GetHidGuid() // 4D1E55B2-F16F-11CF-88CB-001111000030
         {
-            Guid guid; HidD_GetHidGuid(out guid); return guid;
+            Guid guid;
+            HidD_GetHidGuid(out guid);
+            return guid;
         }
 
         [DllImport("hid.dll")]
@@ -1177,10 +1159,12 @@ namespace HidSharp.Platform.Windows
 
             if (NativeMethods.SetupDiGetDeviceInterfaceDetail(deviceInfoSet, ref deviceInterfaceData, out didetail))
             {
-                devicePath = didetail.DevicePath; return true;
+                devicePath = didetail.DevicePath;
+                return true;
             }
 
-            devicePath = null; return false;
+            devicePath = null;
+            return false;
         }
 
         [DllImport("setupapi.dll", SetLastError = true, CharSet = CharSet.Auto)]
@@ -1194,7 +1178,9 @@ namespace HidSharp.Platform.Windows
         {
             value = null;
 
-            uint propertyDataType; char[] propertyValueChars = new char[64]; int propertyValueLength = 63 * 2;
+            uint propertyDataType;
+            char[] propertyValueChars = new char[64];
+            int propertyValueLength = 63 * 2;
             if (SetupDiGetDeviceRegistryProperty(deviceInfoSet, ref deviceInfoData, property, out propertyDataType,
                 propertyValueChars, propertyValueLength, IntPtr.Zero))
             {
@@ -1234,7 +1220,8 @@ namespace HidSharp.Platform.Windows
             {
                 try
                 {
-                    char[] portNameChars = new char[64]; int portNameLength = 63 * 2;
+                    char[] portNameChars = new char[64];
+                    int portNameLength = 63 * 2;
                     if (0 == NativeMethods.RegQueryValueEx(hkey, "PortName", 0, IntPtr.Zero, portNameChars, ref portNameLength))
                     {
                         Array.Resize(ref portNameChars, portNameLength / 2);
@@ -1309,7 +1296,8 @@ namespace HidSharp.Platform.Windows
                     for (int j = 0; NativeMethods.SetupDiEnumDeviceInfo(devInfo, j, ref dvi); j++)
                     {
                         string deviceID;
-                        if (0 != NativeMethods.CM_Get_Device_ID(dvi.DevInst, out deviceID)) { continue; }
+                        if (0 != NativeMethods.CM_Get_Device_ID(dvi.DevInst, out deviceID))
+                        { continue; }
 
                         callback(devInfo, dvi, deviceID);
                     }
@@ -1358,12 +1346,14 @@ namespace HidSharp.Platform.Windows
         [return: MarshalAs(UnmanagedType.Bool)]
         public static extern bool CloseHandle(IntPtr handle);
 
-		public static bool CloseHandle(ref IntPtr handle)
-		{
-			if (!CloseHandle(handle)) { return false; }
-			handle = IntPtr.Zero; return true;
-		}
-		
+        public static bool CloseHandle(ref IntPtr handle)
+        {
+            if (!CloseHandle(handle))
+            { return false; }
+            handle = IntPtr.Zero;
+            return true;
+        }
+
         [DllImport("kernel32.dll", SetLastError = true)]
         [return: MarshalAs(UnmanagedType.Bool)]
         public unsafe static extern bool ReadFile(IntPtr handle, byte* buffer, int bytesToRead,
@@ -1450,15 +1440,18 @@ namespace HidSharp.Platform.Windows
 
             ushort allocated;
             error = NativeMethods.BluetoothGATTGetServices(handle, 0, null, out allocated);
-            if (error != NativeMethods.ERROR_MORE_DATA) { return null; }
+            if (error != NativeMethods.ERROR_MORE_DATA)
+            { return null; }
 
             var services = new NativeMethods.BTH_LE_GATT_SERVICE[allocated];
             if (allocated > 0)
             {
                 ushort returned;
                 error = NativeMethods.BluetoothGATTGetServices(handle, allocated, services, out returned);
-                if (error != 0) { return null; }
-                if (allocated != returned) { return null; }
+                if (error != 0)
+                { return null; }
+                if (allocated != returned)
+                { return null; }
             }
 
             return services;
@@ -1477,17 +1470,22 @@ namespace HidSharp.Platform.Windows
             int error;
 
             ushort allocated;
-            error = NativeMethods.BluetoothGATTGetCharacteristics(handle, ref service,  0, null, out allocated);
-            if (error == NativeMethods.ERROR_NOT_FOUND) { allocated = 0; } else
-            if (error != NativeMethods.ERROR_MORE_DATA) { return null; }
+            error = NativeMethods.BluetoothGATTGetCharacteristics(handle, ref service, 0, null, out allocated);
+            if (error == NativeMethods.ERROR_NOT_FOUND)
+            { allocated = 0; }
+            else
+            if (error != NativeMethods.ERROR_MORE_DATA)
+            { return null; }
 
             var characteristics = new NativeMethods.BTH_LE_GATT_CHARACTERISTIC[allocated];
             if (allocated > 0)
             {
                 ushort returned;
                 error = NativeMethods.BluetoothGATTGetCharacteristics(handle, ref service, allocated, characteristics, out returned);
-                if (error != 0) { return null; }
-                if (allocated != returned) { return null; }
+                if (error != 0)
+                { return null; }
+                if (allocated != returned)
+                { return null; }
             }
 
             return characteristics;
@@ -1507,16 +1505,21 @@ namespace HidSharp.Platform.Windows
 
             ushort allocated;
             error = NativeMethods.BluetoothGATTGetDescriptors(handle, ref characteristic, 0, null, out allocated);
-            if (error == NativeMethods.ERROR_NOT_FOUND) { allocated = 0; } else
-            if (error != NativeMethods.ERROR_MORE_DATA) { return null; }
+            if (error == NativeMethods.ERROR_NOT_FOUND)
+            { allocated = 0; }
+            else
+            if (error != NativeMethods.ERROR_MORE_DATA)
+            { return null; }
 
             var descriptors = new NativeMethods.BTH_LE_GATT_DESCRIPTOR[allocated];
             if (allocated > 0)
             {
                 ushort returned;
                 error = NativeMethods.BluetoothGATTGetDescriptors(handle, ref characteristic, allocated, descriptors, out returned);
-                if (error != 0) { return null; }
-                if (allocated != returned) { return null; }
+                if (error != 0)
+                { return null; }
+                if (allocated != returned)
+                { return null; }
             }
 
             return descriptors;
@@ -1566,7 +1569,8 @@ namespace HidSharp.Platform.Windows
         public static bool TryOpenToGetInfo(string path, Func<IntPtr, bool> action)
         {
             var handle = NativeMethods.CreateFileFromDevice(path, NativeMethods.EFileAccess.None, NativeMethods.EFileShare.Read | NativeMethods.EFileShare.Write);
-            if (handle == (IntPtr)(-1)) { return false; }
+            if (handle == (IntPtr)(-1))
+            { return false; }
 
             try
             {
@@ -1603,5 +1607,7 @@ namespace HidSharp.Platform.Windows
 
         [DllImport("bthprops.cpl", SetLastError = true)]
         public static extern bool BluetoothFindDeviceClose(IntPtr searchHandle);
+
+        // ausbtmc.sys
     }
 }

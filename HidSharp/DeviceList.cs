@@ -49,7 +49,6 @@ namespace HidSharp
         /// </summary>
         protected DeviceList()
         {
-
         }
 
         /*
@@ -60,11 +59,13 @@ namespace HidSharp
         {
             // Improve performance by implementing this override.
             return GetAllDevices().Where(device =>
+                device switch
                 {
-                    if (device is HidDevice && 0 != (types & DeviceTypes.Hid)) { return true; }
-                    if (device is SerialDevice && 0 != (types & DeviceTypes.Serial)) { return true; }
-                    if (device is BleDevice && 0 != (types & DeviceTypes.Ble)) { return true; }
-                    return false;
+                    HidDevice when 0 != (types & DeviceTypes.Hid) => true,
+                    SerialDevice when 0 != (types & DeviceTypes.Serial) => true,
+                    BleDevice when 0 != (types & DeviceTypes.Ble) => true,
+                    HidDevice when 0 != (types & DeviceTypes.UsbTmc) => true,
+                    _ => false
                 });
         }
 
@@ -100,19 +101,18 @@ namespace HidSharp
         /// <param name="releaseNumberBcd">The device release number in binary-coded decimal, or null to not filter by device release number.</param>
         /// <param name="serialNumber">The serial number, or null to not filter by serial number.</param>
         /// <returns>The filtered device list.</returns>
-        public IEnumerable<HidDevice> GetHidDevices(int? vendorID = null, int? productID = null, int? releaseNumberBcd = null, string serialNumber = null)
-        {
-            return GetDevices(DeviceTypes.Hid, d => DeviceFilterHelper.MatchHidDevices(d, vendorID, productID, releaseNumberBcd, serialNumber)).Cast<HidDevice>();
-        }
+        public IEnumerable<HidDevice> GetHidDevices(int? vendorID = null, int? productID = null, int? releaseNumberBcd = null, string serialNumber = null) =>
+            GetDevices(DeviceTypes.Hid, d => DeviceFilterHelper.MatchHidDevices(d, vendorID, productID, releaseNumberBcd, serialNumber)).Cast<HidDevice>();
+
+        public IEnumerable<HidDevice> GetUsbTmcDevices(int? vendorID = null, int? productID = null, int? releaseNumberBcd = null, string serialNumber = null) =>
+            GetDevices(DeviceTypes.UsbTmc, d => DeviceFilterHelper.MatchUsbTmcDevices(d, vendorID, productID, releaseNumberBcd, serialNumber)).Cast<HidDevice>();
 
         /// <summary>
         /// Gets a list of all connected serial devices.
         /// </summary>
         /// <returns>The device list.</returns>
-        public IEnumerable<SerialDevice> GetSerialDevices()
-        {
-            return GetDevices(DeviceTypes.Serial).Cast<SerialDevice>();
-        }
+        public IEnumerable<SerialDevice> GetSerialDevices() =>
+            GetDevices(DeviceTypes.Serial).Cast<SerialDevice>();
 
         /// <summary>
         /// Gets a list of all connected HID, BLE, and serial devices.
@@ -139,10 +139,8 @@ namespace HidSharp
         /// <param name="releaseNumberBcd">The device release number in binary-coded decimal, or null to not filter by device release number.</param>
         /// <param name="serialNumber">The serial number, or null to not filter by serial number.</param>
         /// <returns>The device, or null if none was found.</returns>
-        public HidDevice GetHidDeviceOrNull(int? vendorID = null, int? productID = null, int? releaseNumberBcd = null, string serialNumber = null)
-        {
-            return GetHidDevices(vendorID, productID, releaseNumberBcd, serialNumber).FirstOrDefault();
-        }
+        public HidDevice GetHidDeviceOrNull(int? vendorID = null, int? productID = null, int? releaseNumberBcd = null, string serialNumber = null) =>
+            GetHidDevices(vendorID, productID, releaseNumberBcd, serialNumber).FirstOrDefault();
 
         public bool TryGetHidDevice(out HidDevice device, int? vendorID = null, int? productID = null, int? releaseNumberBcd = null, string serialNumber = null)
         {
@@ -159,11 +157,13 @@ namespace HidSharp
         {
             return GetSerialDevices().Where(d =>
                 {
-                    if (d.DevicePath == portName) { return true; }
+                    if (d.DevicePath == portName)
+                    { return true; }
 
                     try
                     {
-                        if (d.GetFileSystemName() == portName) { return true; }
+                        if (d.GetFileSystemName() == portName)
+                        { return true; }
                     }
                     catch
                     {
@@ -188,10 +188,12 @@ namespace HidSharp
             EventHandler<DeviceListChangedEventArgs> ev;
 
             ev = Changed;
-            if (ev != null) { ev(this, new DeviceListChangedEventArgs()); }
+            if (ev != null)
+            { ev(this, new DeviceListChangedEventArgs()); }
 
             ev = DeviceListChanged;
-            if (ev != null) { ev(this, new DeviceListChangedEventArgs()); }
+            if (ev != null)
+            { ev(this, new DeviceListChangedEventArgs()); }
         }
 
         /// <summary>

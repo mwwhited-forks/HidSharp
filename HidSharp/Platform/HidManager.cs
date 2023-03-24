@@ -36,7 +36,7 @@ namespace HidSharp.Platform
             public GetDeviceKeysCallbackType GetDeviceKeysCallback;
             public TryCreateDeviceCallbackType TryCreateDeviceCallback;
         }
-        DeviceTypeInfo _ble, _hid, _serial;
+        DeviceTypeInfo _ble, _hid, _serial, _usbTmc;
 
         protected HidManager()
         {
@@ -50,6 +50,12 @@ namespace HidSharp.Platform
             {
                 GetDeviceKeysCallback = GetHidDeviceKeys,
                 TryCreateDeviceCallback = TryCreateHidDevice
+            };
+
+            _usbTmc = new DeviceTypeInfo()
+            {
+                GetDeviceKeysCallback = GetUsbTmcDeviceKeys,
+                TryCreateDeviceCallback = TryCreateUsbTmcDevice
             };
 
             _serial = new DeviceTypeInfo()
@@ -156,19 +162,18 @@ namespace HidSharp.Platform
             if (0 != (types & DeviceTypes.Hid)) { devices = devices.Concat(GetDevices(_hid)); }
             if (0 != (types & DeviceTypes.Serial)) { devices = devices.Concat(GetDevices(_serial)); }
             if (0 != (types & DeviceTypes.Ble)) { devices = devices.Concat(GetDevices(_ble)); }
+            if (0 != (types & DeviceTypes.UsbTmc)) { devices = devices.Concat(GetDevices(_usbTmc)); }
             return devices;
         }
 
         protected abstract object[] GetBleDeviceKeys();
-
         protected abstract object[] GetHidDeviceKeys();
-
+        protected abstract object[] GetUsbTmcDeviceKeys();
         protected abstract object[] GetSerialDeviceKeys();
 
         protected abstract bool TryCreateBleDevice(object key, out Device device);
-
         protected abstract bool TryCreateHidDevice(object key, out Device device);
-
+        protected abstract bool TryCreateUsbTmcDevice(object key, out Device device);
         protected abstract bool TryCreateSerialDevice(object key, out Device device);
 
         public virtual bool AreDriversBeingInstalled
